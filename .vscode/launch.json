@@ -6,7 +6,7 @@
       "request": "launch",
       "name": "debug",
       "program": "${workspaceRoot}/index.js",
-      "outFiles": ["${workspaceRoot}/build/**/*.js"]
+      "outFiles": ["${workspaceRoot}/.build/**/*.js"]
     }
   ]
 }

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "babel src -d build --source-maps",
+    "build": "babel src -d .build --source-maps",
     "host": "node index.js",
     "buildAndRun": "npm run build && npm run host",
     "dev": "nodemon --exec npm run buildAndRun"

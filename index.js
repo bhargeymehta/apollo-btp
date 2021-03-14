@@ -1,4 +1,4 @@
-const { server } = require("./build/server");
+const { server } = require("./.build/server");
 
 // import and host the server
 server.listen().then(({ url }) => {
