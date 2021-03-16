@@ -32,4 +32,8 @@ export const userTypeDefs = gql`
   extend type Mutation {
     createNewUser(input: NewUserInput!): User!
   }
+
+  extend type Query {
+    userDetails: User!
+  }
 `;

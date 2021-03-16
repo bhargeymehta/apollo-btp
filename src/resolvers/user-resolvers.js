@@ -1,6 +1,14 @@
 import { v4 as generateId } from "uuid";
 
 export const userResolvers = {
+  Query: {
+    userDetails: async () => {
+      return {
+        id: generateId(),
+        blogs: [generateId(), generateId()],
+      };
+    },
+  },
   Mutation: {
     createNewUser: async (
       _,
@@ -9,20 +17,18 @@ export const userResolvers = {
     ) => {
       const logger = createLogger("createNewUser");
 
-      const users = [];
-      try {
-        (await userCollection.get()).forEach((doc) =>
-          users.push({ id: doc.id, data: doc.data() })
-        );
-      } catch (err) {
-        logger.error(err.message);
-        throw new Error(errorCodes.DB);
-      }
-
-      console.log(users);
       return {
         id: generateId(),
       };
+    },
+  },
+  User: {
+    blogs: async (parent) => {
+      const { id } = parent;
+      const blogIds = [id, id, id, id];
+      return blogIds.map((id) => {
+        return { id };
+      });
     },
   },
 };

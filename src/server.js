@@ -15,13 +15,7 @@ import { collections } from "./firebase/admin";
 
 // utilities
 import { createLogger } from "./utilities/logger";
-
-// errors to be thrown to the users
-const errorCodes = {
-  DB: "ERR_DATABASE",
-  PARTNER: "ERR_PARTNER",
-  AUTH: "ERR_AUTH",
-};
+import { ErrorCodes } from "./utilities/error-handling";
 
 export const server = new ApolloServer({
   debug: false, // this will exclude stack trace in error throws
@@ -31,7 +25,7 @@ export const server = new ApolloServer({
     return {
       firestore,
       collections,
-      errorCodes,
+      ErrorCodes,
       createLogger,
     };
   },

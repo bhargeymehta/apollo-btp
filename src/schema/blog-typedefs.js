@@ -8,7 +8,7 @@ export const blogTypeDefs = gql`
     likes: [Like]!
     comments: [Comment]! # 0 comments => empty array
     timestamp: String!
-    creator: User!
+    author: User!
   }
 
   type Comment {
