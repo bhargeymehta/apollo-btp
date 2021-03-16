@@ -19,6 +19,7 @@ export const userTypeDefs = gql`
     USA
     CHINA
     RUSSIA
+    EMPTY
   }
 
   input NewUserInput {
@@ -29,11 +30,20 @@ export const userTypeDefs = gql`
     country: Country
   }
 
-  extend type Mutation {
-    createNewUser(input: NewUserInput!): User!
+  type NewUserPacket {
+    user: User!
+    secret: String!
   }
 
-  extend type Query {
-    userDetails: User!
+  extend type Mutation {
+    createNewUser(input: NewUserInput!): NewUserPacket!
   }
 `;
+
+export const Countries = {
+  INDIA: "INDIA",
+  USA: "USA",
+  CHINA: "CHINA",
+  RUSSIA: "RUSSIA",
+  EMPTY: "EMPTY",
+};
