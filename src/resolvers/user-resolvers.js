@@ -1,11 +1,16 @@
 import { v4 as generateId } from "uuid";
 import { Countries } from "../schema/user-typedefs";
-import { getArrayFromSnap } from "../utilities/misc";
+import { getArrayFromSnap, getUser } from "../utilities/misc";
 import { ApolloError } from "apollo-server-errors";
 
 export const userResolvers = {
   Mutation: {
     createNewUser,
+    changeSecret,
+    editUserDetails,
+  },
+  Query: {
+    getUserDetails,
   },
 };
 
@@ -67,8 +72,70 @@ async function createNewUser(
     throw new ApolloError(`Can't reach database`, ErrorCodes.DATABASE);
   }
 
+  logger.info(`registered new user: ${handle}`);
   return {
     user: newUser,
     secret,
   };
+}
+
+async function changeSecret(
+  _,
+  { input: { handle, newSecret }, secret },
+  { collections: { userCollection }, ErrorCodes, createLogger, authenticator }
+) {
+  const clientDoc = await authenticator(handle, secret);
+  const logger = createLogger("changeSecret");
+
+  try {
+    await userCollection.doc(clientDoc.id).set(
+      {
+        secret: newSecret,
+      },
+      { merge: true }
+    );
+    logger.info(`changed secret for user:${handle}`);
+  } catch (err) {
+    throw new ApolloError(`Can't reach database`, ErrorCodes.DATABASE);
+  }
+
+  return true;
+}
+
+async function editUserDetails(
+  _,
+  { input: { handle, firstName, lastName, age, country }, secret },
+  { collections: { userCollection }, ErrorCodes, createLogger, authenticator }
+) {
+  const clientDoc = await authenticator(handle, secret);
+  const logger = createLogger("changeSecret");
+
+  const newFirstName = firstName || clientDoc.firstName;
+  const newLastName = lastName || clientDoc.lastName;
+  const newAge = (age > 0 ? age : undefined) || clientDoc.age;
+  const newCountry = country || clientDoc.country;
+
+  try {
+    await userCollection.doc(clientDoc.id).set(
+      {
+        firstName: newFirstName,
+        lastName: newLastName,
+        age: newAge,
+        country: newCountry,
+      },
+      { merge: true }
+    );
+    logger.info(`changed details for user:${handle}`);
+  } catch (err) {
+    throw new ApolloError(`Can't reach database`, ErrorCodes.DATABASE);
+  }
+
+  return true;
+}
+
+async function getUserDetails(_, { input: { requestedHandle } }) {
+  const user = getUser(requestedHandle);
+
+  delete user.secret;
+  return user;
 }

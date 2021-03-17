@@ -16,7 +16,7 @@ import { firestore } from "./firebase/admin";
 import { collections } from "./firebase/admin";
 
 // auth
-import { authenticate } from "./auth/authenticator";
+import { authenticator } from "./auth/authenticator";
 
 // utilities
 import { createLogger } from "./utilities/logger";
@@ -34,7 +34,7 @@ export const server = new ApolloServer({
       ErrorCodes,
       createLogger,
       depthValidator: new DepthValidator(),
-      authenticate,
+      authenticator,
     };
   },
 });
