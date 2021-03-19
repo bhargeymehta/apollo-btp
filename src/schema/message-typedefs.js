@@ -5,7 +5,6 @@ export const messageTypeDefs = gql`
     id: ID!
     content: String!
     sender: User!
-    recipient: User!
     timestamp: String!
   }
 
@@ -14,5 +13,17 @@ export const messageTypeDefs = gql`
     participants: [User!]!
     messages: [Message]!
     createdOn: String!
+  }
+
+  extend type Query {
+    chats(authPacket: AuthUserPacket!): [Chat]!
+  }
+
+  input LatestMessageInput {
+    chatId: ID!
+  }
+
+  type Subscription {
+    latestMessage(input: LatestMessageInput!): Message!
   }
 `;

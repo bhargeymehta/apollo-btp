@@ -6,7 +6,6 @@ export const userTypeDefs = gql`
     comments: [Comment]!
     blogs: [Blog]!
     upvotes: [Upvote]!
-    likes: [Like]!
     handle: String!
     firstName: String
     lastName: String

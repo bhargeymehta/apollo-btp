@@ -5,7 +5,7 @@ export const blogTypeDefs = gql`
     id: ID!
     title: String!
     content: String!
-    likes: [Like]!
+    upvotes: [Upvote]!
     comments: [Comment]! # 0 comments => empty array
     timestamp: String!
     author: User!
@@ -15,14 +15,7 @@ export const blogTypeDefs = gql`
     id: ID!
     content: String!
     commentor: User!
-    upvotes: [Upvote]!
-    replies: [Comment]!
     timestamp: String!
-  }
-
-  type Like {
-    id: ID!
-    liker: User!
   }
 
   type Upvote {
@@ -30,18 +23,57 @@ export const blogTypeDefs = gql`
     upvoter: User!
   }
 
-  type Query {
-    blog(blogId: ID!): Blog
-    blogsCreatedBy(userId: ID!): [Blog]
+  input AuthUserPacket {
+    handle: ID!
+    secret: String!
   }
 
   input CreateBlogInput {
     title: String!
     content: String!
-    creatorId: ID!
+  }
+
+  input UpvoteBlogInput {
+    blogId: ID!
+  }
+
+  input CreateCommentInput {
+    commentContent: String!
+  }
+
+  input DeleteCommentInput {
+    commentId: ID!
   }
 
   type Mutation {
-    createBlog(input: CreateBlogInput): Blog!
+    createBlog(input: CreateBlogInput!, authPacket: AuthUserPacket!): Blog!
+    upvoteBlog(input: UpvoteBlogInput!, authPacket: AuthUserPacket!): Upvote!
+    createComment(
+      input: CreateCommentInput!
+      authPacket: AuthUserPacket!
+    ): Comment!
+    deleteComment(
+      input: DeleteCommentInput!
+      authPacket: AuthUserPacket!
+    ): Boolean
+  }
+
+  input GetPaginatedBlogs {
+    firstCount: Int!
+    afterTimestamp: String!
+  }
+
+  input GetCommentsInput {
+    blogId: ID!
+  }
+
+  input GetBlogInput {
+    blogId: ID!
+  }
+
+  type Query {
+    getPaginatedBlogs(input: GetPaginatedBlogs!): [Blog]!
+    getComments(input: GetCommentsInput!): [Comment]!
+    getBlog(input: GetBlogInput!): Blog!
   }
 `;
