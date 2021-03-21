@@ -12,7 +12,7 @@ import { blogResolvers } from "./resolvers/blog-resolvers";
 import { userResolvers } from "./resolvers/user-resolvers";
 
 // db related
-import { firestore, collections } from "./firebase/admin";
+import { firestore, collectionNames, collections } from "./firebase/admin";
 
 // auth
 import { authenticator } from "./auth/authenticator";
@@ -30,6 +30,7 @@ export const server = new ApolloServer({
     return {
       firestore,
       collections,
+      collectionNames,
       ErrorCodes,
       createLogger,
       depthValidator: new DepthValidator(),

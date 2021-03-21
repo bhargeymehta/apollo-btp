@@ -151,9 +151,9 @@ const User = {
   },
   upvotes: async ({ id }, _, context) => {
     const { upvotes } = await getUserDocById(id, context);
-    return upvotes.map((id) => {
+    return upvotes.map((upvote) => {
       return {
-        id,
+        id: upvote.id,
       };
     });
   },
@@ -180,18 +180,6 @@ const User = {
   },
 };
 
-export const userResolvers = {
-  Mutation: {
-    createNewUser,
-    changeSecret,
-    editUserDetails,
-  },
-  Query: {
-    getUserDetails,
-  },
-  User,
-};
-
 async function getUserDocById(
   id,
   { collections: { userCollection }, ErrorCodes, createLogger }
@@ -205,5 +193,21 @@ async function getUserDocById(
     throw new ApolloError(`Can't reach database`, ErrorCodes.DATABASE);
   }
 
+  if (!userDoc.exists) {
+    throw new ApolloError(`User not found`, ErrorCodes.NOTFOUND);
+  }
+
   return userDoc.data();
 }
+
+export const userResolvers = {
+  Mutation: {
+    createNewUser,
+    changeSecret,
+    editUserDetails,
+  },
+  Query: {
+    getUserDetails,
+  },
+  User,
+};

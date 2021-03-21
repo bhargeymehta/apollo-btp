@@ -8,11 +8,18 @@ admin.initializeApp({
 // firestore
 export const firestore = admin.firestore;
 
+// collection names
+export const collectionNames = {
+  users: "users",
+  blogs: "blogs",
+  chats: "chats",
+  comments: "comments",
+  upvotes: "upvotes",
+};
+
 // collections
 export const collections = {
-  userCollection: firestore().collection("users"),
-  blogCollection: firestore().collection("blogs"),
-  commentCollection: firestore().collection("comments"),
-  upvoteCollection: firestore().collection("upvotes"),
-  chatCollection: firestore().collection("chats"),
+  userCollection: firestore().collection(collectionNames.users),
+  blogCollection: firestore().collection(collectionNames.blogs),
+  chatCollection: firestore().collection(collectionNames.chats),
 };

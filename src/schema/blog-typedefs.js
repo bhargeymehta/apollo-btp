@@ -33,29 +33,26 @@ export const blogTypeDefs = gql`
     content: String!
   }
 
-  input UpvoteBlogInput {
+  input UpvoteChangeInput {
     blogId: ID!
   }
 
   input CreateCommentInput {
+    blogId: ID!
     commentContent: String!
-  }
-
-  input DeleteCommentInput {
-    commentId: ID!
   }
 
   type Mutation {
     createBlog(input: CreateBlogInput!, authPacket: AuthUserPacket!): Blog!
-    upvoteBlog(input: UpvoteBlogInput!, authPacket: AuthUserPacket!): Upvote!
+    upvoteBlog(input: UpvoteChangeInput!, authPacket: AuthUserPacket!): Upvote!
+    removeUpvote(
+      input: UpvoteChangeInput!
+      authPacket: AuthUserPacket!
+    ): Boolean
     createComment(
       input: CreateCommentInput!
       authPacket: AuthUserPacket!
     ): Comment!
-    deleteComment(
-      input: DeleteCommentInput!
-      authPacket: AuthUserPacket!
-    ): Boolean
   }
 
   input GetPaginatedBlogs {
