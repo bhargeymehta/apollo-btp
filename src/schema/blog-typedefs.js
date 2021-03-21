@@ -39,7 +39,7 @@ export const blogTypeDefs = gql`
 
   input CreateCommentInput {
     blogId: ID!
-    commentContent: String!
+    content: String!
   }
 
   type Mutation {

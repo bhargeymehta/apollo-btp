@@ -86,7 +86,7 @@ async function upvoteBlog(
 
       await transaction.update(userCollection.doc(latestClientDoc.id), {
         // add the upvote id in the upvote list in the blog doc
-        upvotes: firestore.FieldValue.arrayUnion({ ...newUpvote, blogId }),
+        upvotes: firestore.FieldValue.arrayUnion({ id: newUpvote.id, blogId }),
       });
 
       await transaction.set(
@@ -109,6 +109,7 @@ async function upvoteBlog(
 
   return {
     ...newUpvote,
+    blogId,
     upvoter: {
       // for gql
       id: newUpvote.upvoter,
@@ -155,10 +156,7 @@ async function removeUpvote(
             .doc(blogId)
             .collection(collectionNames.upvotes)
             .doc(upvote.id),
-          {
-            id: upvote.id,
-            upvoter: upvote.upvoter,
-          }
+          upvote
         );
       } else {
         throw "notpresent";
@@ -175,6 +173,67 @@ async function removeUpvote(
   }
 
   return true;
+}
+
+async function createComment(
+  _,
+  { input: { blogId, content }, authPacket: { handle, secret } },
+  context
+) {
+  const {
+    firestore,
+    collections: { userCollection, blogCollection },
+    collectionNames,
+    ErrorCodes,
+    createLogger,
+    authenticator,
+  } = context;
+  const logger = createLogger("createComment");
+  const clientDoc = await authenticator(handle, secret);
+  delete clientDoc.secret;
+
+  const id = generateId();
+  const newComment = {
+    id,
+    content,
+    commentor: clientDoc.id,
+    timestamp: Date.now(),
+  };
+
+  await getBlogDocById(blogId, context);
+
+  try {
+    await firestore().runTransaction(async (transaction) => {
+      await transaction.update(userCollection.doc(clientDoc.id), {
+        // add the upvote id in the upvote list in the blog doc
+        comments: firestore.FieldValue.arrayUnion({
+          id: newComment.id,
+          blogId,
+        }),
+      });
+
+      await transaction.set(
+        blogCollection
+          .doc(blogId)
+          .collection(collectionNames.comments)
+          .doc(newComment.id),
+        newComment
+      );
+    });
+    logger.info(`comment on blog ${blogId} by ${handle}`);
+  } catch (err) {
+    logger.error(`Firebase Error: ${err}`);
+    throw new ApolloError(`Couldn't create comment`, ErrorCodes.DATABASE);
+  }
+
+  return {
+    ...newComment,
+    blogId,
+    commentor: {
+      // for gql
+      id: newComment.commentor,
+    },
+  };
 }
 
 async function getBlogDocById(
@@ -199,11 +258,11 @@ async function getBlogDocById(
 
 const Blog = {
   title: async ({ id }, _, context) => {
-    const { title } = getBlogDocById(id, context);
+    const { title } = await getBlogDocById(id, context);
     return title;
   },
   content: async ({ id }, _, context) => {
-    const { content } = getBlogDocById(id, context);
+    const { content } = await getBlogDocById(id, context);
     return content;
   },
   upvotes: async (
@@ -231,7 +290,8 @@ const Blog = {
 
     return upvotes.map((upvote) => {
       return {
-        id,
+        id: upvote.id,
+        blogId: id,
         upvoter: {
           id: upvote.upvoter,
         },
@@ -264,6 +324,7 @@ const Blog = {
     return comments.map((comment) => {
       return {
         ...comment,
+        blogId: id,
         commentor: {
           id: comment.commentor,
         },
@@ -271,12 +332,88 @@ const Blog = {
     });
   },
   timestamp: async ({ id }, _, context) => {
-    const { timestamp } = getBlogDocById(id, context);
+    const { timestamp } = await getBlogDocById(id, context);
     return timestamp;
   },
   author: async ({ id }, _, context) => {
-    const { author } = getBlogDocById(id, context);
-    return author; // id
+    const { author } = await getBlogDocById(id, context);
+    return {
+      id: author,
+    }; // id
+  },
+};
+
+const Comment = {
+  timestamp: async ({ id, blogId }, _, context) => {
+    const { timestamp } = await getCommentDocById(id, blogId, context);
+    return timestamp;
+  },
+  content: async ({ id, blogId }, _, context) => {
+    const { content } = await getCommentDocById(id, blogId, context);
+    return content;
+  },
+  commentor: async ({ id, blogId }, _, context) => {
+    const { commentor } = await getCommentDocById(id, blogId, context);
+    return {
+      id: commentor,
+    }; // id
+  },
+};
+
+async function getCommentDocById(
+  id,
+  blogId,
+  { collections: { blogCollection }, ErrorCodes, createLogger, collectionNames }
+) {
+  const logger = createLogger("getCommentDocById");
+  let commentDoc;
+  try {
+    commentDoc = await blogCollection
+      .doc(blogId)
+      .collection(collectionNames.comments)
+      .doc(id)
+      .get();
+  } catch (err) {
+    logger.error(`Firebase Error ${err}`);
+    throw new ApolloError(`Can't reach database`, ErrorCodes.DATABASE);
+  }
+
+  if (!commentDoc.exists) {
+    throw new ApolloError(`Comment not found`, ErrorCodes.NOTFOUND);
+  }
+
+  return commentDoc.data();
+}
+
+async function getUpvoteDocById(
+  id,
+  blogId,
+  { collections: { blogCollection }, ErrorCodes, createLogger, collectionNames }
+) {
+  const logger = createLogger("getUpvoteDocById");
+  let upvoteDoc;
+  try {
+    upvoteDoc = await blogCollection
+      .doc(blogId)
+      .collection(collectionNames.upvotes)
+      .doc(id)
+      .get();
+  } catch (err) {
+    logger.error(`Firebase Error ${err}`);
+    throw new ApolloError(`Can't reach database`, ErrorCodes.DATABASE);
+  }
+
+  if (!upvoteDoc.exists) {
+    throw new ApolloError(`Upvote not found`, ErrorCodes.NOTFOUND);
+  }
+
+  return upvoteDoc.data();
+}
+
+const Upvote = {
+  upvoter: async ({ id, blogId }, _, context) => {
+    const { upvoter } = await getUpvoteDocById(id, blogId, context);
+    return upvoter;
   },
 };
 
@@ -286,6 +423,9 @@ export const blogResolvers = {
     createBlog,
     upvoteBlog,
     removeUpvote,
+    createComment,
   },
   Blog,
+  Comment,
+  Upvote,
 };

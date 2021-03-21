@@ -135,9 +135,10 @@ async function getUserDetails(_, { input: { requestedHandle } }) {
 const User = {
   comments: async ({ id }, _, context) => {
     const { comments } = await getUserDocById(id, context);
-    return comments.map((id) => {
+    return comments.map(({ id, blogId }) => {
       return {
         id,
+        blogId,
       };
     });
   },
@@ -151,9 +152,10 @@ const User = {
   },
   upvotes: async ({ id }, _, context) => {
     const { upvotes } = await getUserDocById(id, context);
-    return upvotes.map((upvote) => {
+    return upvotes.map(({ id, blogId }) => {
       return {
-        id: upvote.id,
+        id,
+        blogId,
       };
     });
   },
