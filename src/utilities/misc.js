@@ -17,6 +17,7 @@ export const getUser = async (handle) => {
   try {
     snap = await userCollection.where("handle", "==", handle).get();
   } catch (err) {
+    logger.error(`Firebase Error ${err}`);
     throw new ApolloError(`Can't reach database`, ErrorCodes.DATABASE);
   }
 

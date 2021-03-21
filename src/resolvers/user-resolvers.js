@@ -3,17 +3,6 @@ import { Countries } from "../schema/user-typedefs";
 import { getArrayFromSnap, getUser } from "../utilities/misc";
 import { ApolloError } from "apollo-server-errors";
 
-export const userResolvers = {
-  Mutation: {
-    createNewUser,
-    changeSecret,
-    editUserDetails,
-  },
-  Query: {
-    getUserDetails,
-  },
-};
-
 async function createNewUser(
   _,
   { input: { handle, firstName, lastName, age, country } },
@@ -58,7 +47,7 @@ async function createNewUser(
     comments: [],
     blogs: [],
     upvotes: [],
-    likes: [],
+    chats: [],
     handle,
     firstName,
     lastName,
@@ -69,6 +58,7 @@ async function createNewUser(
   try {
     await userCollection.doc(id).set({ ...newUser, secret });
   } catch (err) {
+    logger.error(`Firebase Error ${err}`);
     throw new ApolloError(`Can't reach database`, ErrorCodes.DATABASE);
   }
 
@@ -96,6 +86,7 @@ async function changeSecret(
     );
     logger.info(`changed secret for user:${handle}`);
   } catch (err) {
+    logger.error(`Firebase Error ${err}`);
     throw new ApolloError(`Can't reach database`, ErrorCodes.DATABASE);
   }
 
@@ -108,7 +99,7 @@ async function editUserDetails(
   { collections: { userCollection }, ErrorCodes, createLogger, authenticator }
 ) {
   const clientDoc = await authenticator(handle, secret);
-  const logger = createLogger("changeSecret");
+  const logger = createLogger("editUserDetails");
 
   const newFirstName = firstName || clientDoc.firstName;
   const newLastName = lastName || clientDoc.lastName;
@@ -127,6 +118,7 @@ async function editUserDetails(
     );
     logger.info(`changed details for user:${handle}`);
   } catch (err) {
+    logger.error(`Firebase Error ${err}`);
     throw new ApolloError(`Can't reach database`, ErrorCodes.DATABASE);
   }
 
@@ -138,4 +130,80 @@ async function getUserDetails(_, { input: { requestedHandle } }) {
 
   delete user.secret;
   return user;
+}
+
+const User = {
+  comments: async ({ id }, _, context) => {
+    const { comments } = await getUserDocById(id, context);
+    return comments.map((id) => {
+      return {
+        id,
+      };
+    });
+  },
+  blogs: async ({ id }, _, context) => {
+    const { blogs } = await getUserDocById(id, context);
+    return blogs.map((id) => {
+      return {
+        id,
+      };
+    });
+  },
+  upvotes: async ({ id }, _, context) => {
+    const { upvotes } = await getUserDocById(id, context);
+    return upvotes.map((id) => {
+      return {
+        id,
+      };
+    });
+  },
+  handle: async ({ id }, _, context) => {
+    const { handle } = await getUserDocById(id, context);
+    return handle;
+  },
+  firstName: async ({ id }, _, context) => {
+    const firstName = await getUserDocById(id, context);
+    return firstName;
+  },
+  lastName: async ({ id }, _, context) => {
+    const { lastName } = await getUserDocById(id, context);
+    return lastName;
+  },
+  age: async ({ id }, _, context) => {
+    const { age } = await getUserDocById(id, context);
+    if (age < 0) return null;
+    return age;
+  },
+  country: async ({ id }, _, context) => {
+    const { country } = await getUserDocById(id, context);
+    return country;
+  },
+};
+
+export const userResolvers = {
+  Mutation: {
+    createNewUser,
+    changeSecret,
+    editUserDetails,
+  },
+  Query: {
+    getUserDetails,
+  },
+  User,
+};
+
+async function getUserDocById(
+  id,
+  { collections: { userCollection }, ErrorCodes, createLogger }
+) {
+  const logger = createLogger("getUserDocById");
+  let userDoc;
+  try {
+    userDoc = await userCollection.doc(id).get();
+  } catch (err) {
+    logger.error(`Firebase Error ${err}`);
+    throw new ApolloError(`Can't reach database`, ErrorCodes.DATABASE);
+  }
+
+  return userDoc.data();
 }

@@ -6,9 +6,13 @@ admin.initializeApp({
 });
 
 // firestore
-export const firestore = admin.firestore();
+export const firestore = admin.firestore;
 
 // collections
 export const collections = {
-  userCollection: firestore.collection("users"),
+  userCollection: firestore().collection("users"),
+  blogCollection: firestore().collection("blogs"),
+  commentCollection: firestore().collection("comments"),
+  upvoteCollection: firestore().collection("upvotes"),
+  chatCollection: firestore().collection("chats"),
 };

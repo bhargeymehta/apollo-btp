@@ -12,8 +12,7 @@ import { blogResolvers } from "./resolvers/blog-resolvers";
 import { userResolvers } from "./resolvers/user-resolvers";
 
 // db related
-import { firestore } from "./firebase/admin";
-import { collections } from "./firebase/admin";
+import { firestore, collections } from "./firebase/admin";
 
 // auth
 import { authenticator } from "./auth/authenticator";

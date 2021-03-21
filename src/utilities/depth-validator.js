@@ -2,6 +2,7 @@ import { v4 as generateId } from "uuid";
 import { ErrorCodes } from "./error-handling";
 import { createLogger } from "./logger";
 import { config } from "../server-config";
+import { ApolloError } from "apollo-server-errors";
 
 export class DepthValidator {
   constructor() {
@@ -15,17 +16,24 @@ export class DepthValidator {
   validate(queryKey, depth, clientId) {
     const currentDepth = this.queryMap.get(queryKey);
     if (!currentDepth) {
-      this.logger.error("request not found, rejecting request");
-      throw ErrorCodes.INTERNAL;
+      this.logger.error(
+        `request ${queryKey} by ${clientId} not found, rejecting request`
+      );
+      throw new ApolloError(`request timed out`, ErrorCodes.DENIED);
     }
 
     if (depth > this.maxDepth) {
-      this.logger.error("request exceeded depth, rejecting request");
-      throw ErrorCodes.DEPTHVIOLATION;
+      this.logger.error(
+        `request ${queryKey} by ${clientId} exceeded depth, rejecting request`
+      );
+      throw new ApolloError(
+        `request exceeded depth`,
+        ErrorCodes.DEPTHVIOLATION
+      );
     }
 
     if (depth === this.maxDepth) {
-      this.logger.warn(`client ${clientId} reached maxDepth`);
+      this.logger.warn(`request ${queryKey} by ${clientId} reached maxDepth`);
     }
 
     this.queryMap.set(queryKey, Math.max(depth, currentDepth));
