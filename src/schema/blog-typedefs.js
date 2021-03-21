@@ -55,7 +55,7 @@ export const blogTypeDefs = gql`
     ): Comment!
   }
 
-  input GetPaginatedBlogs {
+  input GetPaginatedBlogsInput {
     firstCount: Int!
     afterTimestamp: String!
   }
@@ -64,13 +64,18 @@ export const blogTypeDefs = gql`
     blogId: ID!
   }
 
+  input GetUpvotesInput {
+    blogId: ID!
+  }
+
   input GetBlogInput {
     blogId: ID!
   }
 
   type Query {
-    getPaginatedBlogs(input: GetPaginatedBlogs!): [Blog]!
+    getPaginatedBlogs(input: GetPaginatedBlogsInput!): [Blog]!
     getComments(input: GetCommentsInput!): [Comment]!
+    getUpvotes(input: GetUpvotesInput!): [Upvote]!
     getBlog(input: GetBlogInput!): Blog!
   }
 `;

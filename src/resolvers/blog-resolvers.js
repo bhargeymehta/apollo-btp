@@ -162,14 +162,14 @@ async function removeUpvote(
         throw "notpresent";
       }
     });
-    logger.info(`upvote on blog ${blogId} registered by ${handle}`);
+    logger.info(`upvote on blog ${blogId} removed by ${handle}`);
   } catch (err) {
     if (err === "notpresent") {
       logger.info(`Upvote not found on ${blogId}`);
       throw new ApolloError(`Upvote not found`, ErrorCodes.NOTFOUND);
     }
     logger.error(`Firebase Error: ${err}`);
-    throw new ApolloError(`Couldn't create upvote`, ErrorCodes.DATABASE);
+    throw new ApolloError(`Couldn't remove upvote`, ErrorCodes.DATABASE);
   }
 
   return true;
@@ -413,12 +413,117 @@ async function getUpvoteDocById(
 const Upvote = {
   upvoter: async ({ id, blogId }, _, context) => {
     const { upvoter } = await getUpvoteDocById(id, blogId, context);
-    return upvoter;
+    return {
+      id: upvoter,
+    };
   },
 };
 
+async function getPaginatedBlogs(
+  _,
+  { input: { firstCount, afterTimestamp } },
+  context
+) {
+  const {
+    collections: { blogCollection },
+    createLogger,
+    ErrorCodes,
+  } = context;
+  const logger = createLogger("getPaginatedBlogs");
+
+  let snap;
+  try {
+    snap = await blogCollection
+      .orderBy("timestamp")
+      .startAfter(parseInt(afterTimestamp))
+      .limit(firstCount)
+      .get();
+  } catch (err) {
+    logger.error(`Firebase Error: ${err}`);
+    throw new ApolloError(`Can't reach database`, ErrorCodes.DATBASE);
+  }
+
+  return getArrayFromSnap(snap);
+}
+
+async function getComments(
+  _,
+  { input: { blogId } },
+  { collections: { blogCollection }, collectionNames, createLogger, ErrorCodes }
+) {
+  const logger = createLogger("getComments");
+
+  let snap;
+  try {
+    snap = await blogCollection
+      .doc(blogId)
+      .collection(collectionNames.comments)
+      .get();
+  } catch (err) {
+    logger.error(`Firebase Error: ${err}`);
+    throw new ApolloError(`Can't reach database`, ErrorCodes.DATABASE);
+  }
+
+  const comments = getArrayFromSnap(snap);
+  return comments.map(({ id, commentor }) => {
+    return {
+      id,
+      blogId,
+      commentor: {
+        id: commentor,
+      },
+    };
+  });
+}
+
+async function getUpvotes(
+  _,
+  { input: { blogId } },
+  { collections: { blogCollection }, collectionNames, createLogger, ErrorCodes }
+) {
+  const logger = createLogger("getUpvotes");
+
+  let snap;
+  try {
+    snap = await blogCollection
+      .doc(blogId)
+      .collection(collectionNames.upvotes)
+      .get();
+  } catch (err) {
+    logger.error(`Firebase Error: ${err}`);
+    throw new ApolloError(`Can't reach database`, ErrorCodes.DATABASE);
+  }
+
+  const comments = getArrayFromSnap(snap);
+  return comments.map(({ id, upvoter }) => {
+    return {
+      id,
+      blogId,
+      upvoter: {
+        id: upvoter,
+      },
+    };
+  });
+}
+
+async function getBlog(_, { input: { blogId } }, context) {
+  const blogDoc = await getBlogDocById(blogId, context);
+  return {
+    ...blogDoc,
+    author: {
+      id: blogDoc.author,
+    },
+    blogId,
+  };
+}
+
 export const blogResolvers = {
-  Query: {},
+  Query: {
+    getPaginatedBlogs,
+    getComments,
+    getUpvotes,
+    getBlog,
+  },
   Mutation: {
     createBlog,
     upvoteBlog,
