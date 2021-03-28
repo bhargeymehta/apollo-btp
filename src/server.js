@@ -4,7 +4,6 @@ import { merge } from "lodash";
 // local imports
 // schema
 import { blogTypeDefs } from "./schema/blog-typedefs";
-import { messageTypeDefs } from "./schema/message-typedefs";
 import { userTypeDefs } from "./schema/user-typedefs";
 
 // resolvers
@@ -24,7 +23,7 @@ import { DepthValidator } from "./utilities/depth-validator";
 
 export const server = new ApolloServer({
   debug: false, // this will exclude stack trace in error throws
-  typeDefs: [messageTypeDefs, blogTypeDefs, userTypeDefs],
+  typeDefs: [blogTypeDefs, userTypeDefs],
   resolvers: merge(blogResolvers, userResolvers),
   context: () => {
     return {
