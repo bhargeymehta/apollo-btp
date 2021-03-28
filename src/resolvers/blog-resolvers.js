@@ -11,8 +11,13 @@ async function createBlog(
     ErrorCodes,
     createLogger,
     authenticator,
+    depthValidator,
   }
 ) {
+  const requestKey = depthValidator.register(handle);
+  const depth = 0;
+  depthValidator.validate(requestKey, depth);
+
   const logger = createLogger("createBlog");
   const clientDoc = await authenticator(handle, secret);
   delete clientDoc.secret;
@@ -46,6 +51,8 @@ async function createBlog(
       // for gql
       id: newBlog.author,
     },
+    requestKey,
+    depth: depth + 1,
   };
 }
 
@@ -61,7 +68,12 @@ async function upvoteBlog(
     ErrorCodes,
     createLogger,
     authenticator,
+    depthValidator,
   } = context;
+  const requestKey = depthValidator.register(handle);
+  const depth = 0;
+  depthValidator.validate(requestKey, depth);
+
   const logger = createLogger("upvoteBlog");
   const clientDoc = await authenticator(handle, secret);
   delete clientDoc.secret;
@@ -114,6 +126,8 @@ async function upvoteBlog(
       // for gql
       id: newUpvote.upvoter,
     },
+    requestKey,
+    depth: depth + 1,
   };
 }
 
@@ -129,7 +143,13 @@ async function removeUpvote(
     ErrorCodes,
     createLogger,
     authenticator,
+    depthValidator,
   } = context;
+
+  const requestKey = depthValidator.register(handle);
+  const depth = 0;
+  depthValidator.validate(requestKey, depth);
+
   const logger = createLogger("upvoteBlog");
   const clientDoc = await authenticator(handle, secret);
   delete clientDoc.secret;
@@ -187,7 +207,13 @@ async function createComment(
     ErrorCodes,
     createLogger,
     authenticator,
+    depthValidator,
   } = context;
+
+  const requestKey = depthValidator.register(handle);
+  const depth = 0;
+  depthValidator.validate(requestKey, depth);
+
   const logger = createLogger("createComment");
   const clientDoc = await authenticator(handle, secret);
   delete clientDoc.secret;
@@ -233,6 +259,8 @@ async function createComment(
       // for gql
       id: newComment.commentor,
     },
+    requestKey,
+    depth: depth + 1,
   };
 }
 
@@ -257,24 +285,33 @@ async function getBlogDocById(
 }
 
 const Blog = {
-  title: async ({ id }, _, context) => {
+  title: async ({ id, requestKey, depth }, _, context) => {
+    const { depthValidator } = context;
+    depthValidator.validate(requestKey, depth);
+
     const { title } = await getBlogDocById(id, context);
     return title;
   },
-  content: async ({ id }, _, context) => {
+  content: async ({ id, requestKey, depth }, _, context) => {
+    const { depthValidator } = context;
+    depthValidator.validate(requestKey, depth);
+
     const { content } = await getBlogDocById(id, context);
     return content;
   },
   upvotes: async (
-    { id },
+    { id, requestKey, depth },
     _,
     {
       collections: { blogCollection },
       collectionNames,
       createLogger,
       ErrorCodes,
+      depthValidator,
     }
   ) => {
+    depthValidator.validate(requestKey, depth);
+
     const logger = createLogger("Blog:upvotes");
     let snap;
     try {
@@ -288,26 +325,29 @@ const Blog = {
     }
     const upvotes = getArrayFromSnap(snap);
 
-    return upvotes.map((upvote) => {
-      return {
-        id: upvote.id,
-        blogId: id,
-        upvoter: {
-          id: upvote.upvoter,
-        },
-      };
-    });
+    return upvotes.map((upvote) => ({
+      id: upvote.id,
+      blogId: id,
+      upvoter: {
+        id: upvote.upvoter,
+      },
+      requestKey,
+      depth: depth + 1,
+    }));
   },
   comments: async (
-    { id },
+    { id, requestKey, depth },
     _,
     {
       collections: { blogCollection },
       collectionNames,
       createLogger,
       ErrorCodes,
+      depthValidator,
     }
   ) => {
+    depthValidator.validate(requestKey, depth);
+
     const logger = createLogger("Blog:comments");
     let snap;
     try {
@@ -321,41 +361,60 @@ const Blog = {
     }
     const comments = getArrayFromSnap(snap);
 
-    return comments.map((comment) => {
-      return {
-        ...comment,
-        blogId: id,
-        commentor: {
-          id: comment.commentor,
-        },
-      };
-    });
+    return comments.map((comment) => ({
+      ...comment,
+      blogId: id,
+      commentor: {
+        id: comment.commentor,
+      },
+      requestKey,
+      depth: depth + 1,
+    }));
   },
-  timestamp: async ({ id }, _, context) => {
+  timestamp: async ({ id, requestKey, depth }, _, context) => {
+    const { depthValidator } = context;
+    depthValidator.validate(requestKey, depth);
+
     const { timestamp } = await getBlogDocById(id, context);
     return timestamp;
   },
-  author: async ({ id }, _, context) => {
+  author: async ({ id, requestKey, depth }, _, context) => {
+    const { depthValidator } = context;
+    depthValidator.validate(requestKey, depth);
+
     const { author } = await getBlogDocById(id, context);
     return {
       id: author,
+      requestKey,
+      depth: depth + 1,
     }; // id
   },
 };
 
 const Comment = {
-  timestamp: async ({ id, blogId }, _, context) => {
+  timestamp: async ({ id, blogId, requestKey, depth }, _, context) => {
+    const { depthValidator } = context;
+    depthValidator.validate(requestKey, depth);
+
     const { timestamp } = await getCommentDocById(id, blogId, context);
     return timestamp;
   },
-  content: async ({ id, blogId }, _, context) => {
+  content: async ({ id, blogId, requestKey, depth }, _, context) => {
+    const { depthValidator } = context;
+    depthValidator.validate(requestKey, depth);
+
     const { content } = await getCommentDocById(id, blogId, context);
     return content;
   },
-  commentor: async ({ id, blogId }, _, context) => {
+  commentor: async ({ id, blogId, requestKey, depth }, _, context) => {
+    const { depthValidator } = context;
+    depthValidator.validate(requestKey, depth);
+
     const { commentor } = await getCommentDocById(id, blogId, context);
     return {
       id: commentor,
+      requestKey,
+      depth: depth + 1,
     }; // id
   },
 };
@@ -411,10 +470,15 @@ async function getUpvoteDocById(
 }
 
 const Upvote = {
-  upvoter: async ({ id, blogId }, _, context) => {
+  upvoter: async ({ id, blogId, requestKey, depth }, _, context) => {
+    const { depthValidator } = context;
+    depthValidator.validate(requestKey, depth);
+
     const { upvoter } = await getUpvoteDocById(id, blogId, context);
     return {
       id: upvoter,
+      requestKey,
+      depth: depth + 1,
     };
   },
 };
@@ -424,6 +488,11 @@ async function getPaginatedBlogs(
   { input: { firstCount, afterTimestamp } },
   context
 ) {
+  const { depthValidator } = context;
+  const requestKey = depthValidator.register();
+  const depth = 0;
+  depthValidator.validate(requestKey, depth);
+
   const {
     collections: { blogCollection },
     createLogger,
@@ -449,8 +518,18 @@ async function getPaginatedBlogs(
 async function getComments(
   _,
   { input: { blogId } },
-  { collections: { blogCollection }, collectionNames, createLogger, ErrorCodes }
+  {
+    collections: { blogCollection },
+    collectionNames,
+    createLogger,
+    ErrorCodes,
+    depthValidator,
+  }
 ) {
+  const requestKey = depthValidator.register();
+  const depth = 0;
+  depthValidator.validate(requestKey, depth);
+
   const logger = createLogger("getComments");
 
   let snap;
@@ -465,22 +544,32 @@ async function getComments(
   }
 
   const comments = getArrayFromSnap(snap);
-  return comments.map(({ id, commentor }) => {
-    return {
-      id,
-      blogId,
-      commentor: {
-        id: commentor,
-      },
-    };
-  });
+  return comments.map(({ id, commentor }) => ({
+    id,
+    blogId,
+    commentor: {
+      id: commentor,
+    },
+    requestKey,
+    depth: depth + 1,
+  }));
 }
 
 async function getUpvotes(
   _,
   { input: { blogId } },
-  { collections: { blogCollection }, collectionNames, createLogger, ErrorCodes }
+  {
+    collections: { blogCollection },
+    collectionNames,
+    createLogger,
+    ErrorCodes,
+    depthValidator,
+  }
 ) {
+  const requestKey = depthValidator.register();
+  const depth = 0;
+  depthValidator.validate(requestKey, depth);
+
   const logger = createLogger("getUpvotes");
 
   let snap;
@@ -495,18 +584,23 @@ async function getUpvotes(
   }
 
   const comments = getArrayFromSnap(snap);
-  return comments.map(({ id, upvoter }) => {
-    return {
-      id,
-      blogId,
-      upvoter: {
-        id: upvoter,
-      },
-    };
-  });
+  return comments.map(({ id, upvoter }) => ({
+    id,
+    blogId,
+    upvoter: {
+      id: upvoter,
+    },
+    requestKey,
+    depth: depth + 1,
+  }));
 }
 
 async function getBlog(_, { input: { blogId } }, context) {
+  const { depthValidator } = context;
+  const requestKey = depthValidator.register();
+  const depth = 0;
+  depthValidator.validate(requestKey, depth);
+
   const blogDoc = await getBlogDocById(blogId, context);
   return {
     ...blogDoc,
@@ -514,6 +608,8 @@ async function getBlog(_, { input: { blogId } }, context) {
       id: blogDoc.author,
     },
     blogId,
+    requestKey,
+    depth: depth + 1,
   };
 }
 

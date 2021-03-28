@@ -10,12 +10,16 @@ export class DepthValidator {
     this.maxDepth = queryMaxDepth;
     this.timeoutDuration = queryMaxTimeInSeconds * 1000; // supposed to be in milliseconds
     this.queryMap = new Map();
+    this.clientMap = new Map();
     this.logger = createLogger("DepthValidator");
   }
 
-  validate(queryKey, depth, clientId) {
+  validate(queryKey, depth) {
+    const clientId = this.clientMap.has(queryKey)
+      ? this.clientMap.get(queryKey)
+      : "public";
     const currentDepth = this.queryMap.get(queryKey);
-    if (!currentDepth) {
+    if (currentDepth === undefined) {
       this.logger.error(
         `request ${queryKey} by ${clientId} not found, rejecting request`
       );
@@ -39,10 +43,18 @@ export class DepthValidator {
     this.queryMap.set(queryKey, Math.max(depth, currentDepth));
   }
 
-  register() {
+  register(handle = "public") {
     const key = generateId();
     this.queryMap.set(key, 0);
-    setTimeout(() => this.queryMap.delete(key), this.timeoutDuration);
+    if (handle !== "public") {
+      this.clientMap.set(key, handle);
+    }
+    setTimeout(() => {
+      this.queryMap.delete(key);
+      if (handle !== "public") {
+        this.clientMap.delete(key);
+      }
+    }, this.timeoutDuration);
     return key;
   }
 }

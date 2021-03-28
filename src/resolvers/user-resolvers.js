@@ -6,8 +6,12 @@ import { ApolloError } from "apollo-server-errors";
 async function createNewUser(
   _,
   { input: { handle, firstName, lastName, age, country } },
-  { collections: { userCollection }, ErrorCodes, createLogger }
+  { collections: { userCollection }, ErrorCodes, createLogger, depthValidator }
 ) {
+  const requestKey = depthValidator.register();
+  const depth = 0;
+  depthValidator.validate(requestKey, depth);
+
   const logger = createLogger("createNewUser");
 
   let existingSnap;
@@ -66,6 +70,8 @@ async function createNewUser(
   return {
     user: newUser,
     secret,
+    requestKey,
+    depth: depth + 1,
   };
 }
 
@@ -125,58 +131,94 @@ async function editUserDetails(
   return true;
 }
 
-async function getUserDetails(_, { input: { requestedHandle } }) {
+async function getUserDetails(
+  _,
+  { input: { requestedHandle } },
+  { depthValidator }
+) {
+  const requestKey = depthValidator.register();
+  const depth = 0;
+  depthValidator.validate(requestKey, depth);
+
   const user = getUser(requestedHandle);
 
   delete user.secret;
-  return user;
+  return {
+    ...user,
+    requestKey,
+    depth: depth + 1,
+  };
 }
 
 const User = {
-  comments: async ({ id }, _, context) => {
+  comments: async ({ id, requestKey, depth }, _, context) => {
+    const { depthValidator } = context;
+    depthValidator.validate(requestKey, depth);
+
     const { comments } = await getUserDocById(id, context);
-    return comments.map(({ id, blogId }) => {
-      return {
-        id,
-        blogId,
-      };
-    });
+    return comments.map(({ id, blogId }) => ({
+      id,
+      blogId,
+      requestKey,
+      depth: depth + 1,
+    }));
   },
-  blogs: async ({ id }, _, context) => {
+  blogs: async ({ id, requestKey, depth }, _, context) => {
+    const { depthValidator } = context;
+    depthValidator.validate(requestKey, depth);
+
     const { blogs } = await getUserDocById(id, context);
-    return blogs.map((id) => {
-      return {
-        id,
-      };
-    });
+    return blogs.map((id) => ({
+      id,
+      requestKey,
+      depth: depth + 1,
+    }));
   },
-  upvotes: async ({ id }, _, context) => {
+  upvotes: async ({ id, requestKey, depth }, _, context) => {
+    const { depthValidator } = context;
+    depthValidator.validate(requestKey, depth);
+
     const { upvotes } = await getUserDocById(id, context);
-    return upvotes.map(({ id, blogId }) => {
-      return {
-        id,
-        blogId,
-      };
-    });
+    return upvotes.map(({ id, blogId }) => ({
+      id,
+      blogId,
+      requestKey,
+      depth: depth + 1,
+    }));
   },
-  handle: async ({ id }, _, context) => {
+  handle: async ({ id, requestKey, depth }, _, context) => {
+    const { depthValidator } = context;
+    depthValidator.validate(requestKey, depth);
+
     const { handle } = await getUserDocById(id, context);
     return handle;
   },
-  firstName: async ({ id }, _, context) => {
+  firstName: async ({ id, requestKey, depth }, _, context) => {
+    const { depthValidator } = context;
+    depthValidator.validate(requestKey, depth);
+
     const firstName = await getUserDocById(id, context);
     return firstName;
   },
-  lastName: async ({ id }, _, context) => {
+  lastName: async ({ id, requestKey, depth }, _, context) => {
+    const { depthValidator } = context;
+    depthValidator.validate(requestKey, depth);
+
     const { lastName } = await getUserDocById(id, context);
     return lastName;
   },
-  age: async ({ id }, _, context) => {
+  age: async ({ id, requestKey, depth }, _, context) => {
+    const { depthValidator } = context;
+    depthValidator.validate(requestKey, depth);
+
     const { age } = await getUserDocById(id, context);
     if (age < 0) return null;
     return age;
   },
-  country: async ({ id }, _, context) => {
+  country: async ({ id, requestKey, depth }, _, context) => {
+    const { depthValidator } = context;
+    depthValidator.validate(requestKey, depth);
+
     const { country } = await getUserDocById(id, context);
     return country;
   },
